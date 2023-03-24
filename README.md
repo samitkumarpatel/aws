@@ -12,3 +12,15 @@ Esc , wq!
 source ~/.filename
 
 ```
+
+
+```sh
+EC2 (draft)
+- vpc
+
+- network-interface
+    - private ipv4
+    - security-group
+    - subnet
+        - public ipv4
+```

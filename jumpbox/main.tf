@@ -29,6 +29,30 @@ resource "aws_subnet" "foo" {
   vpc_id            = aws_vpc.foo.id
   cidr_block        = "172.16.10.0/24"
   #availability_zone = "eu-north-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "tf-example"
+  }
+}
+
+resource "aws_security_group" "foo" {
+  name        = "allow_ssh"
+  description = "Allow SSH inbound traffic"
+  vpc_id      = aws_vpc.foo.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   tags = {
     Name = "tf-example"
@@ -39,7 +63,7 @@ resource "aws_subnet" "foo" {
 resource "aws_network_interface" "foo" {
   subnet_id   = aws_subnet.foo.id
   private_ips = ["172.16.10.100"]
-
+  security_groups = [aws_security_group.foo.id]
   tags = {
     Name = "tf-example"
   }
