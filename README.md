@@ -13,9 +13,16 @@ source ~/.filename
 
 ```
 
+## Tips
+To generate Graph in Terraform
 
 ```sh
-EC2 (draft)
+terraform graph | dot -Tsvg > graph.svg
+```
+
+## EC2 (draft)
+
+```sh
 - vpc
 - Route Table (vpcCIDR - local, 0.0.0.0/0 - Internet Gateway) / attach your expected subnet
 - Internet Gateway (attach this gateway with the VPC you want)
@@ -27,10 +34,9 @@ EC2 (draft)
         - publicIp = true/false based that It will assign a public ipv4
 ```
 
-- CIDR 
+## CIDR example 
 
 Possible subnet CIDR for vpc with CIDR 10.0.0.0/24
-
 - 10.0.0.0/25 (128 IP addresses)
 - 10.0.0.128/25 (128 IP addresses)
 - 10.0.0.0/26 (64 IP addresses)
@@ -45,3 +51,10 @@ Possible subnet CIDR for vpc with CIDR 10.0.0.0/24
 - 10.0.0.160/27 (32 IP addresses)
 - 10.0.0.192/27 (32 IP addresses)
 - 10.0.0.224/27 (32 IP addresses)
+
+
+## EC2
+![image info](./ec2/ec2.svg)
+
+## JUMPBOX
+![image info](./jumpbox/jumpbox.svg)
