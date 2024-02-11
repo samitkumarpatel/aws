@@ -46,7 +46,7 @@ resource "aws_route_table" "foo" {
   }
 }
 
-# subnet are being attached to the route table
+# subnet attachment to ROUTE TABLE
 resource "aws_route_table_association" "foo" {
   depends_on = [
     aws_subnet.foo-public
@@ -76,6 +76,20 @@ resource "aws_security_group" "foo" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
   tags = {
     Name = "foo-example"
   }
@@ -93,7 +107,7 @@ resource "aws_network_interface" "foo" {
 
 #EC2
 resource "aws_instance" "foo" {
-  ami = "ami-0cf72be2f86b04e9b"
+  ami = "ami-0014ce3e52359afbd" 
   instance_type = "t3.micro"
 
   network_interface {
