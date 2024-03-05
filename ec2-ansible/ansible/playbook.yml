@@ -1,0 +1,36 @@
+#https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_intro.html
+- name: Playbook to install nginx in ec2
+  hosts: ec2
+  remote_user: ubuntu
+  become: yes
+  gather_facts: true
+  tasks:
+  - name: Update apt cache
+    apt:
+      update_cache: yes
+  - name: Install nginx
+    apt:
+      name: nginx
+      state: present
+  - name: Start and enable nginx
+    service:
+      name: nginx
+      state: started
+      enabled: yes
+  - name: Remove default nginx page
+    file:
+      path: /var/www/html/index.nginx-debian.html
+      state: absent
+  - name: Add hello world page
+    copy:
+      dest: /var/www/html/index.html
+      content: |
+        <html>
+          <body>
+            <h1>Hello World - from ansible</h1>
+          </body>
+        </html>
+  - name: Restart nginx to apply changes
+    service:
+      name: nginx
+      state: restarted
