@@ -6,6 +6,9 @@ Get the `.pem` file from aws console.
 
 Once you have the `.pem` file in place and if you know the default user name (like for amazon linux it will be `ec2-user`, for ubuntu it's `ubuntu`) then just check if anisble can ping that ec2 instace/instances, To test , use ansible adhoc command line.
 
+> make sure you have install ansible and python on your system.
+
+> To know more about the `ansible` command, use `ansible --help`
 
 ```sh
 ansible -i "16.171.132.116," 16.171.132.116 -m ping -e ansible_ssh_private_key_file=/path/to/ec2.pem -e ansible_user=ubuntu --become-user ubuntu
