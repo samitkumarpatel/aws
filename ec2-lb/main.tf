@@ -124,6 +124,20 @@ resource "aws_security_group" "foo-lb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    security_groups = [ aws_security_group.foo.id ]
+  }
+
+  egress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    security_groups = [ aws_security_group.foo.id ]
+  }
+
   tags = {
     Name = "foo-example"
   }
@@ -161,7 +175,12 @@ resource "aws_instance" "foo" {
     cpu_credits = "unlimited"
   }
 
-  key_name   =  data.aws_key_pair.foo.key_name
+  key_name  =  data.aws_key_pair.foo.key_name
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y nginx
+              EOF 
 
   tags = {
     Name = "foo-example"
@@ -176,7 +195,8 @@ resource "aws_lb_target_group" "foo" {
   vpc_id   = aws_vpc.foo.id
   health_check {
     enabled = true
-    port = 80
+    port = "traffic-port"
+    path = "/"
     protocol = "HTTP"
   }
 }
