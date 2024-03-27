@@ -1,7 +1,7 @@
 #VPC
 resource "aws_default_vpc" "foo" {
   tags = {
-    Name = "ec2-efs"
+    Name = "default"
   }
 }
 
@@ -10,7 +10,7 @@ resource "aws_default_subnet" "foo-az1" {
   availability_zone = "eu-north-1a"
 
   tags = {
-    Name = "ec2-efs"
+    Name = "default"
   }
 }
 
@@ -22,14 +22,21 @@ resource "aws_internet_gateway" "foo" {
   }
 }
 
-resource "aws_route_table" "foo" {
-  vpc_id = aws_default_vpc.foo.id
+data "aws_vpc" "selected" {
+  id = aws_default_vpc.foo.id
+}
+
+
+resource "aws_default_route_table" "example" {
+  default_route_table_id = data.aws_vpc.selected.main_route_table_id
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.foo.id
   }
+
   tags = {
-    Name = "ec2-efs"
+    Name = "default"
   }
 }
 
@@ -38,7 +45,7 @@ resource "aws_route_table_association" "foo" {
     aws_default_subnet.foo-az1
   ]
   subnet_id      = aws_default_subnet.foo-az1.id
-  route_table_id = aws_route_table.foo.id
+  route_table_id = aws_default_route_table.example.id
 }
 
 
