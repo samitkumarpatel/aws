@@ -1,8 +1,10 @@
 #VPC
 resource "aws_vpc" "foo" {
   cidr_block = "10.0.0.0/24"
+  
+  enable_dns_hostnames = true
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -11,7 +13,7 @@ resource "aws_internet_gateway" "foo" {
   vpc_id = aws_vpc.foo.id
 
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -21,7 +23,7 @@ resource "aws_subnet" "foo-private" {
   cidr_block        = "10.0.0.0/25"
   availability_zone = "eu-north-1a"
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -31,7 +33,7 @@ resource "aws_subnet" "foo-public" {
   availability_zone = "eu-north-1b"
   map_public_ip_on_launch = true
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -44,7 +46,7 @@ resource "aws_route_table" "foo" {
     gateway_id = aws_internet_gateway.foo.id
   }
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -101,7 +103,7 @@ resource "aws_security_group" "foo" {
   }
 
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -139,7 +141,7 @@ resource "aws_security_group" "foo-lb" {
   }
 
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -150,7 +152,7 @@ resource "aws_network_interface" "foo" {
 
   security_groups = [aws_security_group.foo.id]
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -180,10 +182,11 @@ resource "aws_instance" "foo" {
               #!/bin/bash
               apt-get update -y
               apt-get install -y nginx
+              apt-get install nfs-common -y
               EOF 
 
   tags = {
-    Name = "ec2-lb-example"
+    Name = "ec2-efs-lb-example"
   }
 }
 
@@ -224,7 +227,7 @@ resource "aws_lb" "foo" {
   # }
 
   tags = {
-    Environment = "ec2-lb-example"
+    Environment = "ec2-efs-lb-example"
   }
 }
 
@@ -237,4 +240,48 @@ resource "aws_lb_listener" "foo" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.foo.arn
   }
+
+  tags = {
+    Name = "ec2-efs-lb-example"
+  }
+}
+
+# EFS
+resource "aws_efs_file_system" "foo" {
+  creation_token  = "efs-ec2-lb-example"
+  performance_mode = "generalPurpose"
+  throughput_mode  = "bursting"
+  encrypted        = true
+  
+  lifecycle_policy {
+    transition_to_ia = "AFTER_30_DAYS"
+  }
+
+  tags = {
+    Name = "ec2-efs-lb-example"
+  }
+}
+
+resource "aws_security_group" "foo-efs" {
+  name        = "efs-sg"
+  description = "Allow ec2-sg will talk to this efs"
+  vpc_id      = aws_vpc.foo.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    # ec2-sg
+    security_groups = [ aws_security_group.foo.id ]
+  }
+
+  tags = {
+    Name = "ec2-efs-lb-example"
+  }
+}
+
+resource "aws_efs_mount_target" "foo" {
+  file_system_id = aws_efs_file_system.foo.id
+  subnet_id      = aws_subnet.foo-public.id
+  security_groups = [ aws_security_group.foo-efs.id ]
 }
