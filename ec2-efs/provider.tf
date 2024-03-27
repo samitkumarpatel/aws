@@ -4,6 +4,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.41"
     }
+
+    ansible = {
+      version = "~> 1.2.0"
+      source  = "ansible/ansible"
+    }
   }
 }
 

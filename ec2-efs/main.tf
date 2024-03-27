@@ -172,3 +172,24 @@ resource "aws_efs_mount_target" "foo" {
   subnet_id       = aws_default_subnet.foo-az1.id
   security_groups = [ aws_security_group.efs.id ]
 }
+
+
+#ansible
+resource "ansible_host" "host" {
+  count  = 2
+  name   = aws_instance.foo[count.index].public_ip
+  groups = ["nginx"]
+  variables = {
+    ansible_user                  = "ubuntu",
+    ansible_ssh_private_key_file  = "~/lenovo.pem",
+    ansible_connection            = "ssh"
+  }
+}
+
+resource "ansible_playbook" "playbook" {
+  count = 2
+  playbook   = "playbook.yml"
+  name       = ansible_host.host[count.index].name
+  replayable = true
+  
+}
