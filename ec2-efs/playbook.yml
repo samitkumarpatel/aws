@@ -1,7 +1,7 @@
 #https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_intro.html
 - name: Playbook to mount ec2
   hosts: all
-  remote_user: ubuntu
+  #remote_user: ubuntu
   become: yes
   gather_facts: true
   tasks:

@@ -175,21 +175,36 @@ resource "aws_efs_mount_target" "foo" {
 
 
 #ansible
-resource "ansible_host" "host" {
-  count  = 2
-  name   = aws_instance.foo[count.index].public_ip
-  groups = ["nginx"]
-  variables = {
+#https://github.com/ansible/terraform-provider-ansible/blob/main/examples
+
+# resource "ansible_host" "host" {
+#   name   = aws_instance.foo[0].public_ip
+#   groups = ["nginx"]
+#   variables = {
+#     ansible_user                  = "ubuntu",
+#     ansible_ssh_private_key_file  = "~/lenovo.pem",
+#     ansible_connection            = "ssh"
+#   }
+# }
+
+# resource "ansible_group" "group" {
+#   name     = "ec2"
+#   children = [for ip in aws_instance.foo[*].public_ip : "${ip}"]
+#   variables = {
+#     ansible_user                  = "ubuntu",
+#     ansible_ssh_private_key_file  = "~/lenovo.pem",
+#     ansible_connection            = "ssh"
+#   }
+# }
+
+resource "ansible_playbook" "playbook" {
+  playbook   = "playbook.yml"
+  name = aws_instance.foo[0].public_ip
+
+  replayable = true
+  extra_vars = {
     ansible_user                  = "ubuntu",
     ansible_ssh_private_key_file  = "~/lenovo.pem",
     ansible_connection            = "ssh"
   }
-}
-
-resource "ansible_playbook" "playbook" {
-  count = 2
-  playbook   = "playbook.yml"
-  name       = ansible_host.host[count.index].name
-  replayable = true
-  
 }
