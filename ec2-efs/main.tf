@@ -172,3 +172,25 @@ resource "aws_efs_mount_target" "foo" {
   subnet_id       = aws_default_subnet.foo-az1.id
   security_groups = [ aws_security_group.efs.id ]
 }
+
+
+output "ec2_host_public_ip" {
+  value = aws_instance.foo[*].public_ip
+}
+
+output "efs_hostname" {
+  value = aws_efs_file_system.foo.dns_name
+}
+
+locals {
+  template_vars = {
+    ec2_hosts             = [for ip in aws_instance.foo[*].public_ip : "${ip}"]
+    efs_hostname          = aws_efs_file_system.foo.dns_name
+    ssh_private_key_file  = "/home/samit/lenovo.pem"
+  }
+}
+
+resource "local_file" "foo" {
+  content  = templatefile("${path.module}/ansible/inventory.ini.tftpl", local.template_vars)
+  filename = "${path.module}/ansible/inventory.ini"
+}
