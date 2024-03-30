@@ -15,9 +15,11 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip3 install ansible
 ```  
+
 2. Install ansible-galaxy collection. want to know [why? read here](https://galaxy.ansible.com/ui/repo/published/cloud/terraform/) ?
 
-> In short: This will help generate dynamic inventory from state file
+> Make sure `Requires Ansible>=2.14.0`
+In short: This will help generate dynamic inventory from state file
 
 ```sh
 ansible-galaxy collection install cloud.terraform
