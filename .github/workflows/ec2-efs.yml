@@ -10,6 +10,9 @@ defaults:
     working-directory: ec2-efs
 permissions:
   pull-requests: write
+env:
+  AWS_ACCESS_KEY_ID: ${{ secret.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secret.AWS_SECRET }}
 
 jobs:
   terraform:
