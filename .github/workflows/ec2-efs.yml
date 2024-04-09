@@ -2,8 +2,8 @@ name: ec2-efs
 on:
   # push:
   #   branches: [ "main" ]
-  # pull_request:
-  #   branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 defaults:
   run:
@@ -15,7 +15,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET }}
 
 jobs:
-  terraform:
+  terraform-plan:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
