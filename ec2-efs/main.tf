@@ -121,7 +121,7 @@ resource "aws_instance" "foo" {
     cpu_credits = "unlimited"
   }
 
-  key_name  =  data.aws_key_pair.foo.key_name
+  key_name  =  aws_key_pair.foo.key_name
   user_data = <<-EOF
               #!/bin/bash
               apt-get update -y

@@ -20,7 +20,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: hashicorp/setup-terraform@v3
-    
+    - name: debug
+      run: |
+        ls -al
     - name: Terraform fmt
       id: fmt
       run: terraform fmt -check
