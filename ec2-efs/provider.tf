@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.41"
     }
   }
+  backend "s3" {
+    bucket = "tfpocbucket001"
+    key    = "ec2-efs/dev/terraform.tfstate"
+    region = "eu-north-1"
+  }
 }
 
 # Configure the AWS Provider

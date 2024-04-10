@@ -6,3 +6,4 @@ terraform.tfstate.backup
 *.pem
 .vscode
 **/ec2-efs/ansible/*.ini
+**/*.pem

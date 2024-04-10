@@ -99,11 +99,16 @@ resource "aws_network_interface" "foo" {
   }
 }
 
+resource "tls_private_key" "foo" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
 
 #ssh-keygen -t rsa -b 4096 -f ./keypair/id_rsa
 resource "aws_key_pair" "foo" {
   key_name   = "id_rsa"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCfBRCVHth6w4Iv/EtyhBB5TLEbjZ8u4arKIK9/4awPzk03G+Q3+Nq1r7di/COQe+bO9sfIG2GuLXCi1Ze1hyGP3zkpzb0vT+tW+b3fjpjUi/WSzTuxRVttiVOD9R4XAHJR0qXccN/RmwhXrmxHM9kITjACkceREgCHbo4vMA2gvnSRQS7Gxy7rWUun5WCvoHFvrnF159PQyjqPyiONY/jSVT5xXteUP4svHYfoAv0lIcPqczBLGvXnpMMAMOSC/7dLewjV0mDA8JaYwK5xvS4gHqixcjltEgSr/X/MQ7qeHfm4gaadklRCXWuhC8UCi5O/3IS595riZEhv+4slkyvq9kBUK99x4XfB1DhPB06dVNFuRVVqA6dO8EQRuC7fbR2DabYAY9lLyKdvnqRj0l70YrDTnoHURP5q5cfTZeFE+ckNRtQ3Y6aKZHU9V4gpoAK2Kuu9DRwQF3EQAoaM7W2he3z7CynnJ7NUzQF7JPxlSOg5/JRVa/O7GK7bDButy73GyS4YC+qKaUgUrVbNC6cj6Yq0DRGygLW/ho3rEpGA5Gm4ZIytI+Sn85Adjy9qumf4u4bswQEfkxU4UcAAPjgPWh/hKG8W59yABlRlj+H17SDlxuavnQV1+Rt78NK+RdPdYwfx7ekqj4lyewGdpnEdnzjY8maccJzYsvmr9tAoZQ== email@exxample.com"
+  public_key = tls_private_key.foo.public_key_openssh
 }
 
 #EC2
@@ -183,11 +188,16 @@ output "efs_hostname" {
   value = aws_efs_file_system.foo.dns_name
 }
 
+output "tls_private_key" {
+  value     = tls_private_key.foo.private_key_pem
+  sensitive = true
+}
+
 locals {
   template_vars = {
     ec2_hosts            = [for ip in aws_instance.foo[*].public_ip : "${ip}"]
     efs_hostname         = aws_efs_file_system.foo.dns_name
-    ssh_private_key_file = "~/ec2.pem"
+    ssh_private_key_file = "id_rsa.pem"
   }
 }
 

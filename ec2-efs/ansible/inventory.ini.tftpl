@@ -6,8 +6,8 @@ ${ec2_host}
 
 [ec2:vars]
 ansible_connection=ssh
-host_key_checking = False
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 ansible_ssh_private_key_file=${ssh_private_key_file} 
 ansible-user=ubuntu
 mount_path="/home/ubuntu/efs"
-efs_endpoint=${efs_hostname}
+efs_endpoint=${efs_hostname}:/
