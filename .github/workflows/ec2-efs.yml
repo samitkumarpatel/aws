@@ -28,7 +28,7 @@ env:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    if: inputs.operation == 'apply'
+    if: inputs.operation == 'apply' || github.event_name == 'pull_request'
     steps:
     - uses: actions/checkout@v4
     - uses: hashicorp/setup-terraform@v3
