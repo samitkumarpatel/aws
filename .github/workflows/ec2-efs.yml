@@ -125,7 +125,7 @@ jobs:
         terraform output -raw tls_private_key >> id_rsa.pem
         chmod 400 id_rsa.pem
         ls -al
-        ansible-playbook -i inventory.ini playbook.yml -e ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+        ansible-playbook -i inventory.ini playbook.yml
       working-directory: ec2-efs/ansible
       env:
         ANSIBLE_HOST_KEY_CHECKING: False
