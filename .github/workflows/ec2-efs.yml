@@ -1,4 +1,5 @@
 name: ec2-efs
+run-name: ec2-efs Infra [ ${{ inputs.operation }} ]
 on:
   pull_request:
     branches: [ "main" ]
