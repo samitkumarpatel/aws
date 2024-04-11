@@ -126,7 +126,7 @@ jobs:
         chmod 400 id_rsa.pem
         ls -al
         ansible-playbook -i inventory.ini playbook.yml
-      working-directory: ansible
+      working-directory: ec2-efs/ansible
   
   terraform-destroy:
     runs-on: ubuntu-latest
