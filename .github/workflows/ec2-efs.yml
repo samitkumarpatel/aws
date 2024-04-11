@@ -112,7 +112,7 @@ jobs:
           }
     - name: Terraform apply
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
-      run: terraform apply --auto-apply
+      run: terraform apply --auto-approve
     - name: Python setup
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       uses: actions/setup-python@v5
@@ -134,5 +134,5 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: hashicorp/setup-terraform@v3
-    - run: terraform destroy --auto-apply
+    - run: terraform destroy --auto-approve
 
