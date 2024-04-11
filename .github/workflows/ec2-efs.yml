@@ -113,19 +113,28 @@ jobs:
     - name: Terraform apply
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: terraform apply --auto-approve
+    
     - name: Python setup
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       uses: actions/setup-python@v5
+    
     - name: Ansible Install
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: pip3 install ansible
-    - name: Ansible
+    
+    - name: prepare keyfile
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: |
         terraform output -raw tls_private_key >> id_rsa.pem
         chmod 400 id_rsa.pem
         ls -al
-        ansible-playbook -i inventory.ini playbook.yml --ssh-common-args='-o StrictHostKeyChecking=no'
+        cat id_rsa.pem
+      working-directory: ec2-efs/ansible
+
+    - name: Ansible Playbook
+      if: inputs.operation == 'apply' && github.event_name != 'pull_request'
+      run: |
+        ansible-playbook -i inventory.ini playbook.yml --ssh-common-args='-o StrictHostKeyChecking=no' --private-key=id_rsa.pem
       working-directory: ec2-efs/ansible
   
   terraform-destroy:
