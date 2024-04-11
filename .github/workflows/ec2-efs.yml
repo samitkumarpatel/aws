@@ -122,18 +122,18 @@ jobs:
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: pip3 install ansible
     
-    - name: prepare keyfile
+    - name: Prepare Keyfile
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: |
         terraform output -raw tls_private_key >> ansible/id_rsa.pem
         chmod 400 ansible/id_rsa.pem
         ls -al
-        cat ansible/id_rsa.pem
 
     - name: Ansible Playbook
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: |
-        ansible-playbook -i inventory.ini playbook.yml --ssh-common-args='-o StrictHostKeyChecking=no' --private-key=id_rsa.pem
+        #ansible-playbook -i inventory.ini playbook.yml --ssh-common-args='-o StrictHostKeyChecking=no' --private-key=id_rsa.pem
+        ansible-playbook -i inventory.ini playbook.yml
       working-directory: ec2-efs/ansible
   
   terraform-destroy:
