@@ -125,11 +125,10 @@ jobs:
     - name: prepare keyfile
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
       run: |
-        terraform output -raw tls_private_key >> id_rsa.pem
-        chmod 400 id_rsa.pem
+        terraform output -raw tls_private_key >> ansible/id_rsa.pem
+        chmod 400 ansible/id_rsa.pem
         ls -al
-        cat id_rsa.pem
-      working-directory: ec2-efs/ansible
+        cat ansible/id_rsa.pem
 
     - name: Ansible Playbook
       if: inputs.operation == 'apply' && github.event_name != 'pull_request'
