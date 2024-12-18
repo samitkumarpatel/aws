@@ -9,3 +9,5 @@ terraform.tfstate.backup
 **/*.pem
 **/id_rsa.pem
 id_rsa.pem
+plan.out
+*.out

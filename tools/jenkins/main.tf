@@ -21,9 +21,9 @@ terraform {
 locals {
   region = "eu-north-1"
 
-  ami           = "ami-0e2c8caa4b6378d8c"
+  ami           = "ami-075449515af5df0d1"
   instance_type = "t3.small"
-  vm_count      = 2
+  vm_count      = 1
   name          = "tools"
 
 }
@@ -32,58 +32,24 @@ provider "aws" {
   region = local.region
 }
 
-#VPC
-resource "aws_vpc" "tools_vpc" {
-  cidr_block = "172.16.0.0/16"
-  tags = {
-    Name = "${local.name}-vpc"
-  }
+# default
+# VPC
+data "aws_vpc" "default" {
+  default = true
 }
 
-#INTERNET GATEWAY (IGW) 
-resource "aws_internet_gateway" "tools_igw" {
-  vpc_id = aws_vpc.tools_vpc.id
+data "aws_subnets" "default" {
 
-  tags = {
-    Name = "${local.name}-igw"
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
-}
-
-#SUBNET
-resource "aws_subnet" "tools_public_subnet" {
-  vpc_id                  = aws_vpc.tools_vpc.id
-  cidr_block              = "172.16.1.0/24"
-  map_public_ip_on_launch = true
-  
-  tags = {
-    Name = "${local.name}-public-subnet"
-  }
-}
-
-# ROUTE TABLE
-resource "aws_route_table" "tools_route_table" {
-  vpc_id = aws_vpc.tools_vpc.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.tools_igw.id
-  }
-  tags = {
-    Name = "${local.name}-route-table"
-  }
-}
-
-# subnet attachment to ROUTE TABLE
-resource "aws_route_table_association" "tools_route_table_association" {
-  depends_on = [
-    aws_subnet.tools_public_subnet
-  ]
-  subnet_id      = aws_subnet.tools_public_subnet.id
-  route_table_id = aws_route_table.tools_route_table.id
 }
 
 # SECURITY GROUP
-resource "aws_security_group" "tools_sg" {
-  vpc_id = aws_vpc.tools_vpc.id
+resource "aws_security_group" "custom" {
+  name   = "${local.name}-sg"
+  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 22
@@ -97,7 +63,6 @@ resource "aws_security_group" "tools_sg" {
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "http 8080"
   }
 
   egress {
@@ -107,56 +72,56 @@ resource "aws_security_group" "tools_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "${local.name}-sg"
-  }
-
+  tags = { Name = "${local.name}-sg" }
 }
 
-# RSA KEY PAIR
-resource "tls_private_key" "foo" {
+resource "aws_network_interface" "custom" {
+  count = local.vm_count
+
+  subnet_id       = data.aws_subnets.default.ids[0]
+  security_groups = [aws_security_group.custom.id]
+
+  tags = { Name = "${local.name}-ni-${count.index + 1}" }
+}
+
+#ssh-keygen -t rsa -b 4096 -f ./keypair/id_rsa
+resource "tls_private_key" "custom" {
   algorithm = "RSA"
   rsa_bits  = 2048
 }
 
-resource "aws_key_pair" "foo" {
+resource "aws_key_pair" "custom" {
   key_name   = "id_rsa"
-  public_key = tls_private_key.foo.public_key_openssh
+  public_key = tls_private_key.custom.public_key_openssh
 }
 
-output "ssh_key" {
-  value     = tls_private_key.foo.private_key_pem
-  sensitive = true
-}
-
-# NETWORK INTERFACES
-resource "aws_network_interface" "network_interface" {
-  count           = local.vm_count
-  subnet_id       = aws_subnet.tools_public_subnet.id
-  security_groups = [aws_security_group.tools_sg.id]
-  
-  tags = {
-    Name = "${local.name}-ni"
-  }
-}
-
-# WORKER INSTANCES
+#EC2
 resource "aws_instance" "tools_vm" {
-  count         = local.vm_count
+  depends_on = [
+    aws_network_interface.custom
+  ]
+
+  count = local.vm_count
+
   ami           = local.ami
   instance_type = local.instance_type
-  key_name      = aws_key_pair.foo.key_name
 
-  # Attach each worker instance to its corresponding network interface
   network_interface {
-    network_interface_id = aws_network_interface.network_interface[count.index].id
+    network_interface_id = aws_network_interface.custom[count.index].id
     device_index         = 0
   }
 
-  tags = {
-    Name = "${local.name}-vm-${count.index + 1}"
+  credit_specification {
+    cpu_credits = "unlimited"
   }
-  
+
+  key_name = aws_key_pair.custom.key_name
+  tags     = { Name = "${local.name}-vm-${count.index + 1}" }
+}
+
+output "ssh_key" {
+  value     = tls_private_key.custom.private_key_pem
+  sensitive = true
 }
 
 output "vm_ips" {

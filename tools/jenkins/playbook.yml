@@ -5,12 +5,47 @@
   vars:
     
   tasks:
+    
+    - name: Download Jenkins keyring
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: '0644'
+
+    - name: Add Jenkins repository
+      ansible.builtin.copy:
+        content: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        dest: /etc/apt/sources.list.d/jenkins.list
+    
     - name: Install required packages
       ansible.builtin.apt:
         name:
           - software-properties-common
           - curl
+          - openjdk-17-jdk
+          - jenkins
         state: present
         update_cache: yes
+    
+    - name: Start Jenkins service
+      ansible.builtin.systemd:
+        name: jenkins
+        state: started
+        enabled: true
+    
+    - name: Wait for Jenkins to generate the initial admin password
+      ansible.builtin.wait_for:
+        path: /var/lib/jenkins/secrets/initialAdminPassword
+        timeout: 60
+
+    - name: Read the initial admin password
+      ansible.builtin.shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: initial_password
+      failed_when: false
+        
+    - name: Display the initial admin password
+      ansible.builtin.debug:
+        msg: >
+          Jenkins Initial Admin Password (Make sure you remove '\n' from the text): {{ initial_password.stdout }}
 
     
