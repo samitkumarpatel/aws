@@ -1,5 +1,5 @@
 ---
-- name: Install Containerd, runc, CNI, and Kubernetes
+- name: Install Jenkins
   hosts: all
   become: true
   vars:
@@ -24,45 +24,62 @@
           - curl
           - openjdk-17-jdk
           - jenkins
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
         state: present
         update_cache: yes
     
-    # - name: Get Jenkins service status
-    #   ansible.builtin.systemd:
-    #     name: jenkins
-    #     state: started
-    #   register: jenkins_service_status
-
-    # - name: Display Jenkins service status
-    #   ansible.builtin.debug:
-    #     msg: >
-    #       Jenkins Service Status:
-    #       State: {{ jenkins_service_status.state }}
-
-    # - name: Start Jenkins service if inactive
-    #   ansible.builtin.systemd:
-    #     name: jenkins
-    #     state: started
-    #   when: jenkins_service_status.state != 'started'
-
-    # - name: start jenins
-    #   ansible.builtin.shell: service jenkins start
-
-    - name: Wait for Jenkins to generate the initial admin password
-      ansible.builtin.wait_for:
-        path: /var/lib/jenkins/secrets/initialAdminPassword
-        timeout: 60
-
-    - name: Read the initial admin password
-      ansible.builtin.shell: cat /var/lib/jenkins/secrets/initialAdminPassword
-      register: initial_password
-      failed_when: false
-        
-    - name: Display the initial admin password
-      ansible.builtin.debug:
-        msg: >
-          Jenkins Initial Admin Password \n 
-          (Note: This password might have contain new line (/n) unicode character at the end, Please remove it before you use): 
-          {{ initial_password.stdout }}
-
+    - name: Add an apt signing key for docker
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
     
+    - name: Add docker repository into sources list
+      ansible.builtin.apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+    
+    - name: Update cache & Install docker
+      ansible.builtin.apt:
+        update_cache: yes
+        state: present
+        pkg:
+        - docker-ce
+    
+    - name: Ensure Docker service is enabled and started
+      ansible.builtin.systemd_service:
+        state: started
+        name: docker    
+        enabled: yes
+
+    - name: Add user to the docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+    
+    - name: Jenkins Started
+      ansible.builtin.service:
+        name: jenkins
+        state: started
+      register: jenkins_service_status  
+
+    - block:
+      - name: Wait for Jenkins to generate the initial admin password
+        ansible.builtin.wait_for:
+          path: /var/lib/jenkins/secrets/initialAdminPassword
+          timeout: 60
+
+      - name: Read the initial admin password
+        ansible.builtin.shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+        register: initial_password
+        failed_when: false
+          
+      - name: Display the initial admin password
+        ansible.builtin.debug:
+          msg: >
+            Jenkins Initial Admin Password (Please remove /n from the end of the password string: 
+            {{ initial_password.stdout }}
+      when: jenkins_service_status.state == 'started'
