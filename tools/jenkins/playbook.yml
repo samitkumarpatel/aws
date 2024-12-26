@@ -1,36 +1,30 @@
 ---
-- name: Install Jenkins
+- name: Install Jenkins master agent tools
   hosts: all
   become: true
   vars:
-    
-  tasks:
-    
-    - name: Download Jenkins keyring
-      ansible.builtin.get_url:
-        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
-        dest: /usr/share/keyrings/jenkins-keyring.asc
-        mode: '0644'
-
-    - name: Add Jenkins repository
-      ansible.builtin.copy:
-        content: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
-        dest: /etc/apt/sources.list.d/jenkins.list
-    
+  tasks:    
     - name: Install required packages
       ansible.builtin.apt:
         name:
           - software-properties-common
           - curl
           - openjdk-17-jdk
-          - jenkins
           - apt-transport-https
           - ca-certificates
           - gnupg
           - lsb-release
         state: present
         update_cache: yes
-    
+  
+
+- name: Install Jenkins agent tools
+  hosts: 
+    - master
+    - docker
+  become: true
+  vars:
+  tasks:    
     - name: Add an apt signing key for docker
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -60,26 +54,43 @@
         groups: docker
         append: yes
     
-    - name: Jenkins Started
-      ansible.builtin.service:
+- name: Install Jenkins
+  hosts: 
+    - master
+  become: true
+  vars:
+  tasks:
+    - name: docker pull jenkins/jenkins:lts
+      ansible.builtin.docker_image:
+        name: jenkins/jenkins
+        source: pull
+        state: present
+        force: yes
+        pull: yes
+        tag: lts
+    
+    - name: start jenkins container
+      ansible.builtin.docker_container:
         name: jenkins
+        image: jenkins/jenkins:lts
         state: started
-      register: jenkins_service_status  
-
-    - block:
-      - name: Wait for Jenkins to generate the initial admin password
-        ansible.builtin.wait_for:
-          path: /var/lib/jenkins/secrets/initialAdminPassword
-          timeout: 60
-
-      - name: Read the initial admin password
-        ansible.builtin.shell: cat /var/lib/jenkins/secrets/initialAdminPassword
-        register: initial_password
-        failed_when: false
-          
-      - name: Display the initial admin password
-        ansible.builtin.debug:
-          msg: >
-            Jenkins Initial Admin Password (Please remove /n from the end of the password string: 
-            {{ initial_password.stdout }}
-      when: jenkins_service_status.state == 'started'
+        restart_policy: always
+        ports:
+          - "8080:8080"
+          - "50000:50000"
+        volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+          - "/var/jenkins_home:/var/jenkins_home"
+        env:
+          JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+          JENKINS_OPTS: "--prefix=/jenkins"
+          JENKINS_USER: "{{ ansible_user }}"
+          JENKINS_PASS: "{{ ansible_password }}"
+          JENKINS_EMAIL: "{{ ansible_user }}@example.com"
+          JENKINS_URL: "http://{{ ansible_ssh_host }}:8080"
+          JENKINS_SLAVE_AGENT_PORT: "50000"
+          JENKINS_HOME: "/var/jenkins_home"
+          JENKINS_UC: "https://updates.jenkins.io"
+          JENKINS_UC_EXPERIMENTAL: "https://updates.jenkins.io/experimental"
+          JENKINS_OPTS: "--httpPort=8080"
+          #JENKINS_JAVA_OPTIONS: "-Djenkins.install.runSetupWizard=false
