@@ -1,5 +1,6 @@
 ---
 - name: Install Jenkins master agent tools
+  tags: all-tools
   hosts: all
   become: true
   vars:
@@ -16,9 +17,22 @@
           - lsb-release
         state: present
         update_cache: yes
-  
+    
+    # - name: Creta Jenkins User
+    #   ansible.builtin.user:
+    #     name: "jenkins"
+    #     state: present
+    #     shell: /bin/bash
+    #     createhome: yes
+    # - name: Add Jenkins User to sudoers
+    #   ansible.builtin.copy:
+    #     content: "jenkins ALL
+    #     (ALL) NOPASSWD: ALL"
+    #     dest: /etc/sudoers.d/jenkins
+    #     mode: 0440
 
 - name: Install Jenkins agent tools
+  tags: docker
   hosts: 
     - master
     - docker
@@ -55,22 +69,25 @@
         append: yes
     
 - name: Install Jenkins
+  tags: jenkins
   hosts: 
     - master
   become: true
   vars:
   tasks:
     - name: docker pull jenkins/jenkins:lts
-      ansible.builtin.docker_image:
+      community.docker.docker_image:
         name: jenkins/jenkins
         source: pull
         state: present
-        force: yes
-        pull: yes
         tag: lts
+        
+    - name: Create a volume
+      community.docker.docker_volume:
+        name: jenkins_home
     
     - name: start jenkins container
-      ansible.builtin.docker_container:
+      community.docker.docker_container:
         name: jenkins
         image: jenkins/jenkins:lts
         state: started
@@ -80,12 +97,12 @@
           - "50000:50000"
         volumes:
           - "/var/run/docker.sock:/var/run/docker.sock"
-          - "/var/jenkins_home:/var/jenkins_home"
+          - "jenkins_home:/var/jenkins_home"
         env:
-          JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
-          JENKINS_OPTS: "--prefix=/jenkins"
+          # JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+          # JENKINS_OPTS: "--prefix=/jenkins"
           JENKINS_USER: "{{ ansible_user }}"
-          JENKINS_PASS: "{{ ansible_password }}"
+          JENKINS_PASS: "admin123"
           JENKINS_EMAIL: "{{ ansible_user }}@example.com"
           JENKINS_URL: "http://{{ ansible_ssh_host }}:8080"
           JENKINS_SLAVE_AGENT_PORT: "50000"
@@ -94,3 +111,13 @@
           JENKINS_UC_EXPERIMENTAL: "https://updates.jenkins.io/experimental"
           JENKINS_OPTS: "--httpPort=8080"
           #JENKINS_JAVA_OPTIONS: "-Djenkins.install.runSetupWizard=false
+    - name: read initial secrets
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: "cat /var/jenkins_home/secrets/initialAdminPassword"
+      register: result
+
+    - name: Print debug
+      ansible.builtin.debug:
+        msg: "Jenkins Initial Admin Password : {{ result.stdout }}"
+        #var: result.stdout

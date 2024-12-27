@@ -65,6 +65,13 @@ resource "aws_security_group" "custom" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 50000
+    to_port     = 50000
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.default.cidr_block]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
