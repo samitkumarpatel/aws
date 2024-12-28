@@ -99,8 +99,9 @@
           - "/var/run/docker.sock:/var/run/docker.sock"
           - "jenkins_home:/var/jenkins_home"
         env:
-          # JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
-          # JENKINS_OPTS: "--prefix=/jenkins"
+          #JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+          #JENKINS_OPTS: "--prefix=/jenkins"
+          #JENKINS_JAVA_OPTIONS: "-Djenkins.install.runSetupWizard=false
           JENKINS_USER: "{{ ansible_user }}"
           JENKINS_PASS: "admin123"
           JENKINS_EMAIL: "{{ ansible_user }}@example.com"
@@ -110,8 +111,17 @@
           JENKINS_UC: "https://updates.jenkins.io"
           JENKINS_UC_EXPERIMENTAL: "https://updates.jenkins.io/experimental"
           JENKINS_OPTS: "--httpPort=8080"
-          #JENKINS_JAVA_OPTIONS: "-Djenkins.install.runSetupWizard=false
-    - name: read initial secrets
+          
+    
+    - name: Wait for Jenkins to start
+      community.general.wait_for:
+        host: "{{ ansible_ssh_host }}"
+        port: 8080
+        delay: 10
+        timeout: 60
+        state: started
+
+    - name: Read initial secrets
       community.docker.docker_container_exec:
         container: jenkins
         command: "cat /var/jenkins_home/secrets/initialAdminPassword"
@@ -119,5 +129,6 @@
 
     - name: Print debug
       ansible.builtin.debug:
-        msg: "Jenkins Initial Admin Password : {{ result.stdout }}"
+        msg: |
+          "Jenkins Initial Admin Password : {{ result.stdout }}"
         #var: result.stdout
