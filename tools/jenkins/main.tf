@@ -141,6 +141,7 @@ resource "ansible_host" "master" {
   name   = aws_instance.tools_vm[0].public_ip
   groups = ["master"]
   variables = {
+    name                         = "master"
     ansible_user                 = "ubuntu"
     ansible_ssh_private_key_file = "id_rsa.pem"
     ansible_connection           = "ssh"
@@ -155,6 +156,7 @@ resource "ansible_host" "docker" {
   name   = aws_instance.tools_vm[1].public_ip
   groups = ["docker"]
   variables = {
+    name                         = "docker"
     ansible_user                 = "ubuntu"
     ansible_ssh_private_key_file = "id_rsa.pem"
     ansible_connection           = "ssh"
@@ -169,6 +171,7 @@ resource "ansible_host" "terraform" {
   name   = aws_instance.tools_vm[2].public_ip
   groups = ["terraform"]
   variables = {
+    name                         = "terraform"
     ansible_user                 = "ubuntu"
     ansible_ssh_private_key_file = "id_rsa.pem"
     ansible_connection           = "ssh"
