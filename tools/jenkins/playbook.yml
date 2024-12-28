@@ -27,20 +27,31 @@
         state: present
         update_cache: yes
     
-    - name: Create Jenkins group with id 1000
-      ansible.builtin.group:
-        name: jenkins
-        gid: 1001
-        state: present
-    
-    - name: Create Jenkins user with id 1000 with bash shell and no password
-      ansible.builtin.user:
-        name: jenkins
-        uid: 1001
-        group: jenkins
-        shell: /bin/bash
-        password: "*"
-        state: present
+    - name: Jenkins User and Group creation
+      when: False
+      block:
+      - name: Create Jenkins group with id 1000
+        ansible.builtin.group:
+          name: jenkins
+          gid: 1001
+          state: present
+      
+      - name: Create Jenkins user with id 1000 with bash shell and no password
+        ansible.builtin.user:
+          name: jenkins
+          uid: 1001
+          group: jenkins
+          shell: /bin/bash
+          password: "*"
+          state: present
+
+    - name: jenkins_home directory with read write permission
+      ansible.builtin.file:
+        path: /home/ubuntu/jenkins_home
+        state: directory
+        owner: 1000
+        group: 1000
+        mode: '0755'
     
     - name: docker Installation
       when: "'docker' in group_names or 'master' in group_names"
@@ -145,15 +156,17 @@
         ports:
           - "8080:8080"
           - "50000:50000"
+        user: "jenkins:jenkins"
         volumes:
           - "/var/run/docker.sock:/var/run/docker.sock"
-          - "jenkins_home:/var/jenkins_home"
+          - "/home/ubuntu/jenkins_home:/var/jenkins_home"
         env:
           #JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
           #JENKINS_OPTS: "--prefix=/jenkins"
           #JENKINS_JAVA_OPTIONS: "-Djenkins.install.runSetupWizard=false
           #JENKINS_USER: "{{ ansible_user }}"
           #JENKINS_PASS: "admin123"
+          JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
           JENKINS_EMAIL: "{{ ansible_user }}@example.com"
           JENKINS_URL: "http://{{ ansible_ssh_host }}:8080"
           JENKINS_SLAVE_AGENT_PORT: "50000"
@@ -169,17 +182,64 @@
         timeout: 30
         delay: 10
         state: started
-
+    
     - name: Read initial secrets
       community.docker.docker_container_exec:
         container: jenkins
         command: "cat /var/jenkins_home/secrets/initialAdminPassword"
       register: result
+    
+    - name: Install Jenkins Plugins
+      block:
+      - name: Download jenkinsCLI
+        ansible.builtin.get_url:
+          url: http://{{ ansible_ssh_host }}:8080/jnlpJars/jenkins-cli.jar
+          dest: /home/ubuntu/jenkins-cli.jar
+          mode: 0755
+      
+      - name: Copy plugins.txt file to host machine
+        ansible.builtin.copy:
+          src: plugins.txt
+          dest: /home/ubuntu/plugins.txt
+      
+      - name: Check jenkinsCLI who-am-i
+        ansible.builtin.command:
+          cmd: "java -jar /home/ubuntu/jenkins-cli.jar -s http://localhost:8080 who-am-i"
+        register: whoami
+        ignore_errors: yes
+        environment:
+          JENKINS_USER_ID: admin
+          JENKINS_API_TOKEN: "{{ result.stdout }}"
+      
+      - name: who-am-i result
+        ansible.builtin.debug:
+          msg: "{{ whoami.stdout }}"
+      
+      - name: Install Jenkins Plugins
+        ansible.builtin.shell:
+          cmd: "java -jar /home/ubuntu/jenkins-cli.jar -s http://localhost:8080 install-plugin $(cat plugins.txt) -restart"
+        environment:
+          JENKINS_USER_ID: admin
+          JENKINS_API_TOKEN: "{{ result.stdout }}"
+        register: plugin_install
+        ignore_errors: yes
+      
+      - name: Jenkins Plugin Installation Result
+        ansible.builtin.debug:
+          msg: "{{ plugin_install.stdout }}"
+
+    - name: Wait for Jenkins to restart after plugin installation
+      ansible.builtin.wait_for:
+        host: "{{ ansible_ssh_host }}"
+        port: 8080
+        timeout: 30
+        delay: 10
+        state: started
 
     - name: Initial Admin Password
       ansible.builtin.debug:
         msg: "Jenkins Initial Admin Password : {{ result.stdout }}"
-        #var: result.stdout
+    
     - name: Jenkins URL
       ansible.builtin.debug:
         msg: "Jenkins URL : http://{{ ansible_ssh_host }}:8080"
