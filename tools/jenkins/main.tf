@@ -23,7 +23,7 @@ locals {
 
   ami           = "ami-075449515af5df0d1"
   instance_type = "t3.small"
-  vm_count      = 1
+  vm_count      = 3
   name          = "tools"
 
 }
@@ -63,6 +63,13 @@ resource "aws_security_group" "custom" {
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 50000
+    to_port     = 50000
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.default.cidr_block]
   }
 
   egress {
@@ -129,12 +136,42 @@ output "vm_ips" {
 }
 
 # ansible ansible-inventory -i inventory.yml --list (show the inventory)
-resource "ansible_host" "worker" {
-  count = local.vm_count
-
-  name   = aws_instance.tools_vm[count.index].public_ip
-  groups = ["vm"]
+resource "ansible_host" "master" {
+  
+  name   = aws_instance.tools_vm[0].public_ip
+  groups = ["master"]
   variables = {
+    name                         = "master"
+    ansible_user                 = "ubuntu"
+    ansible_ssh_private_key_file = "id_rsa.pem"
+    ansible_connection           = "ssh"
+    ansible_ssh_common_args      = "-o StrictHostKeyChecking=no"
+    ansible_python_interpreter   = "/usr/bin/python3"
+  }
+
+}
+
+resource "ansible_host" "docker" {
+  
+  name   = aws_instance.tools_vm[1].public_ip
+  groups = ["docker"]
+  variables = {
+    name                         = "docker"
+    ansible_user                 = "ubuntu"
+    ansible_ssh_private_key_file = "id_rsa.pem"
+    ansible_connection           = "ssh"
+    ansible_ssh_common_args      = "-o StrictHostKeyChecking=no"
+    ansible_python_interpreter   = "/usr/bin/python3"
+  }
+
+}
+
+resource "ansible_host" "terraform" {
+  
+  name   = aws_instance.tools_vm[2].public_ip
+  groups = ["terraform"]
+  variables = {
+    name                         = "terraform"
     ansible_user                 = "ubuntu"
     ansible_ssh_private_key_file = "id_rsa.pem"
     ansible_connection           = "ssh"
